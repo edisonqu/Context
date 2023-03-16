@@ -4,7 +4,7 @@ use reqwest::header;
 
 
 pub async fn question_and_context(
-    question: &str, context: &str
+    question: &str, context: &str, api_key: &str
 ) -> Result<(Value), Box<dyn std::error::Error>>{
     let client = Client::new();
 
@@ -17,7 +17,7 @@ pub async fn question_and_context(
     });
 
     let mut headers = header::HeaderMap::new();
-    headers.insert("Authorization","Bearer {HUGGINGFACE_API_KEY}".parse().unwrap());
+    headers.insert("Authorization",{"Bearer ".to_owned()+api_key}.parse().unwrap());
 
     let resp = client
         .post(URL)
