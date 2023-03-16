@@ -61,13 +61,8 @@ impl EventHandler for Bot {
             let response_content = match command.data.name.as_str() {
                 "hello" => "hello".to_owned(),
                 "ask" => {
-                let mut create_interaction_responses = command.create_interaction_response(&ctx.http, |response| {
-                        response.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                    });
-
-                    if let Err(why) = create_interaction_response.await {
-                        eprintln!("{}", why)
-                    }
+                    let result = command.defer(&ctx.http).await;
+                    println!("{:?}",result);
                     let context_wrapped = command
                         .data
                         .options
@@ -88,7 +83,7 @@ impl EventHandler for Bot {
                     let context = context_value.as_str().unwrap();
                     let question = question_value.as_str().unwrap();
                     println!("{}",question);
-                    let result = api_call::question_and_context(question, context).await;
+                    let result = api_call::question_and_context(question, context,&self.hugging_face_api).await;
                     print!("{:?}",result);
                     match result {
 
@@ -104,26 +99,16 @@ impl EventHandler for Bot {
                 command => unreachable!("Unknown Command: {}", command)
             };
 
-            let create_interaction_response = command.create_interaction_response(&ctx.http, |response| {
-                response.kind(InteractionResponseType::UpdateMessage)
-                    .interaction_response_data(|message| message.content(response_content))
+            let create_interaction_response = command.edit_original_interaction_response(&ctx.http,|response|{
+                response.content(response_content)
             });
-
             if let Err(why) = create_interaction_response.await {
                 eprintln!("{}", why)
             }
+
         }
     }
 }
-
-//    let question = "Why do we assume that it is well-formed?";
-//     let context = "Now in the interaction handler, we can add a new branch to the match tree. We pull out the option/argument corresponding to place and extract its value. Because of the restrictions made when setting the option we can assume that it is well-formed (unless Discord sends a bad request) and thus the unwraps here. After we have the arguments of the command we call the get_forecast function and format the results into a string to return.";
-//
-//
-//     match question_and_context(question, context).await {
-//         Ok(response) => println!("Response: {:?}", response["answer"]),
-//         Err(error) => println!("Error: {:?}", error),
-//     }
 
 #[shuttle_service::main]
 async fn serenity(
