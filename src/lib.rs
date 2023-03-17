@@ -18,12 +18,11 @@ use tracing::{error, info};
 struct Bot {
     hugging_face_api: String,
     client: reqwest::Client,
-    guild_id: GuildId
+    guild_id: GuildId,
 }
 
 #[async_trait]
 impl EventHandler for Bot {
-
     async fn ready(&self, ctx: Context, ready: Ready) {
         info!("{} is connected!", ready.user.name);
 
@@ -31,38 +30,36 @@ impl EventHandler for Bot {
             commands
                 .create_application_command(|command| { command.name("hello").description("to say hello") })
                 .create_application_command(|command| {
-                command
-                    .name("ask")
-                    .description("Ask a question with context, receive an answer")
-                    .create_option(|option| {
-                        option
-                            .name("context")
-                            .description("Provide the context for your question")
-                            .kind(CommandOptionType::String)
-                            .required(true)
-                    })
-                    .create_option(|option| {
-                        option
-                            .name("question")
-                            .description("Ask a question about the context given")
-                            .kind(CommandOptionType::String)
-                            .required(true)
-                    })
-            })
+                    command
+                        .name("ask")
+                        .description("Ask a question with context, receive an answer")
+                        .create_option(|option| {
+                            option
+                                .name("context")
+                                .description("Provide the context for your question")
+                                .kind(CommandOptionType::String)
+                                .required(true)
+                        })
+                        .create_option(|option| {
+                            option
+                                .name("question")
+                                .description("Ask a question about the context given")
+                                .kind(CommandOptionType::String)
+                                .required(true)
+                        })
+                })
         }).await.unwrap();
 
         info!("{:#?}", commands);
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-
         if let Interaction::ApplicationCommand(command) = interaction {
-
             let response_content = match command.data.name.as_str() {
                 "hello" => "hello".to_owned(),
                 "ask" => {
                     let result = command.defer(&ctx.http).await;
-                    println!("{:?}",result);
+                    println!("{:?}", result);
                     let context_wrapped = command
                         .data
                         .options
@@ -82,15 +79,20 @@ impl EventHandler for Bot {
 
                     let context = context_value.as_str().unwrap();
                     let question = question_value.as_str().unwrap();
-                    println!("{}",question);
-                    let result = api_call::question_and_context(question, context,&self.hugging_face_api).await;
-                    print!("{:?}",result);
+                    println!("{}", question);
+                    let result = api_call::question_and_context(question, context, &self.hugging_face_api).await;
+                    print!("{:?}", result);
                     match result {
-
                         Ok((resp)) => {
-                            let answer = resp["answer"].as_str().unwrap();
-                            format!("{}", answer.trim_matches('"'),
-                        )},
+                            if resp.get("answer").is_some() {
+                                let answer = resp["answer"].as_str().unwrap();
+                                format!("{}", answer.trim_matches('"'))
+                            } else {
+                                "Loading model, Try Again in 20 seconds. If the problem persists, please contact ed#1234 or add an issue at https://github.com/edisonqu/Context.".to_owned()
+                            }
+
+
+                        }
                         Err(err) => {
                             format!("Err: {}", err)
                         }
@@ -99,13 +101,12 @@ impl EventHandler for Bot {
                 command => unreachable!("Unknown Command: {}", command)
             };
 
-            let create_interaction_response = command.edit_original_interaction_response(&ctx.http,|response|{
+            let create_interaction_response = command.edit_original_interaction_response(&ctx.http, |response| {
                 response.content(response_content)
             });
             if let Err(why) = create_interaction_response.await {
                 eprintln!("{}", why)
             }
-
         }
     }
 }
@@ -141,7 +142,7 @@ async fn serenity(
         .event_handler(Bot {
             hugging_face_api: api_key,
             client: reqwest::Client::new(),
-            guild_id: GuildId(guild_id.parse().unwrap())
+            guild_id: GuildId(guild_id.parse().unwrap()),
         })
         .await
         .expect("Err creating client");
