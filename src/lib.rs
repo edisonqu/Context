@@ -99,12 +99,12 @@ impl EventHandler for Bot {
                 command => unreachable!("Unknown Command: {}", command)
             };
 
-            // let create_interaction_response = command.create_followup_message(&ctx.http, |response| {
-            //     response.content(response_content)
-            // });
-            // if let Err(why) = create_interaction_response.await {
-            //     eprintln!("{}", why)
-            // }
+            let create_interaction_response = command.edit_original_interaction_response(&ctx.http, |response| {
+                response.content(response_content)
+            });
+            if let Err(why) = create_interaction_response.await {
+                eprintln!("{}", why)
+            }
         }
     }
 }
