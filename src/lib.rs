@@ -83,11 +83,10 @@ impl EventHandler for Bot {
                             if resp.get("answer").is_some() {
                                 let answer = resp["answer"].as_str().unwrap();
                                 format!("{}", answer.trim_matches('"'))
-                            } else {
-                                "Loading model, Try Again in 20 seconds. If the problem persists, please contact ed#1234 or add an issue at https://github.com/edisonqu/Context.".to_owned()
                             }
-
-
+                            else {
+                                "Model distilbert-base-cased-distilled-squad is currently loading, try again in 20 seconds. If the problem persists, please contact ed#1234 or add an issue at https://github.com/edisonqu/Context."
+                            }
                         }
                         Err(err) => {
                             format!("Err: {}", err)
@@ -97,12 +96,12 @@ impl EventHandler for Bot {
                 command => unreachable!("Unknown Command: {}", command)
             };
 
-            let create_interaction_response = command.edit_original_interaction_response(&ctx.http, |response| {
-                response.content(response_content)
-            });
-            if let Err(why) = create_interaction_response.await {
-                eprintln!("{}", why)
-            }
+            // let create_interaction_response = command.create_followup_message(&ctx.http, |response| {
+            //     response.content(response_content)
+            // });
+            // if let Err(why) = create_interaction_response.await {
+            //     eprintln!("{}", why)
+            // }
         }
     }
 }
