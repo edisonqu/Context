@@ -5,11 +5,12 @@ use std::error;
 use anyhow::anyhow;
 use serenity::async_trait;
 use serenity::Client;
+use serenity::model::application::command;
 use serenity::model::application::command::CommandOptionType;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
-use serenity::model::id::GuildId;
+use serenity::model::application::command::Command;
 use serenity::model::prelude::interaction::Interaction;
 use serenity::prelude::*;
 use shuttle_secrets::SecretStore;
@@ -18,7 +19,6 @@ use tracing::{error, info};
 struct Bot {
     hugging_face_api: String,
     client: reqwest::Client,
-    guild_id: GuildId,
 }
 
 #[async_trait]
@@ -26,10 +26,7 @@ impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         info!("{} is connected!", ready.user.name);
 
-        let commands = GuildId::set_application_commands(&self.guild_id, &ctx.http, |commands| {
-            commands
-                .create_application_command(|command| { command.name("hello").description("to say hello") })
-                .create_application_command(|command| {
+        let commands = Command::create_global_application_command( &ctx.http, |command| {
                     command
                         .name("ask")
                         .description("Ask a question with context, receive an answer")
@@ -47,7 +44,7 @@ impl EventHandler for Bot {
                                 .kind(CommandOptionType::String)
                                 .required(true)
                         })
-                })
+
         }).await.unwrap();
 
         info!("{:#?}", commands);
@@ -56,7 +53,6 @@ impl EventHandler for Bot {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
             let response_content = match command.data.name.as_str() {
-                "hello" => "hello".to_owned(),
                 "ask" => {
                     let result = command.defer(&ctx.http).await;
                     println!("{:?}", result);
@@ -128,11 +124,6 @@ async fn serenity(
     } else {
         return Err(anyhow!("'HUGGING_FACE_API' was not found").into());
     };
-    let guild_id = if let Some(guild_id) = secret_store.get("DISCORD_GUILD_ID") {
-        guild_id
-    } else {
-        return Err(anyhow!("'DISCORD_GUILD_ID' was not found").into());
-    };
 
 
     // Set gateway intents, which decides what events the bot will be notified about
@@ -142,7 +133,6 @@ async fn serenity(
         .event_handler(Bot {
             hugging_face_api: api_key,
             client: reqwest::Client::new(),
-            guild_id: GuildId(guild_id.parse().unwrap()),
         })
         .await
         .expect("Err creating client");
