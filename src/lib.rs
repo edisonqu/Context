@@ -84,8 +84,11 @@ impl EventHandler for Bot {
                                 let answer = resp["answer"].as_str().unwrap();
                                 format!("{}", answer.trim_matches('"'))
                             }
-                            else {
-                                "Model distilbert-base-cased-distilled-squad is currently loading, try again in 20 seconds. If the problem persists, please contact ed#1234 or add an issue at https://github.com/edisonqu/Context."
+                            else if resp.get("error").is_some(){
+                                let answer = resp["error"].as_str().unwrap();
+                                format!("{}", answer.trim_matches('"'))
+                            }else {
+                                format!("Error: {}. If the problem persists, please contact ed#1234 or add an issue at https://github.com/edisonqu/Context.", resp)
                             }
                         }
                         Err(err) => {
